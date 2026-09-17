@@ -84,6 +84,20 @@ body::before {
   box-sizing: border-box;
 }
 
+/* === Main Content Container === */
+#main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-16); /* Clear fixed header */
+}
+
+#main > section {
+  background: var(--bg-elevated);
+  border-radius: var(--space-3);
+  border: 1px solid var(--border);
+}
+
 /* === Header — Touch-First == */
 .header {
   position: fixed;

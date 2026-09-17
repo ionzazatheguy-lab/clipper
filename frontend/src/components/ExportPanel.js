@@ -11,15 +11,13 @@ export class ExportPanel {
   }
 
   render() {
-    const panel = document.createElement('section');
-    panel.className = 'main';
-    panel.innerHTML = `
+    this.target.innerHTML = `
       <div class="export-panel">
         <label style="font:600 var(--space-3)/1 var(--font-body); color:var(--fg-muted);">Video file path</label>
-        <input 
-          type="text" 
-          id="video-path" 
-          class="input" 
+        <input
+          type="text"
+          id="video-path"
+          class="input"
           placeholder="/path/to/match.mp4"
           aria-label="Video file path">
         <div style="margin-top:var(--space-4);">
@@ -32,8 +30,6 @@ export class ExportPanel {
         </div>
       </div>
     `;
-    this.target.innerHTML = '';
-    this.target.appendChild(panel);
     this.bindEvents();
   }
 
@@ -43,13 +39,12 @@ export class ExportPanel {
     const msgEl = document.getElementById('export-msg');
 
     pathInput.addEventListener('input', (e) => {
-      // Clean up path
       e.target.value = e.target.value.replace(/[^\w\d\s\/\-\._]/g, '').trim();
     });
 
     exportBtn.addEventListener('click', async () => {
       const videoPath = pathInput.value.trim() || '/Users/avirana/Documents/Coding/clipper/match.mp4';
-      
+
       if (!videoPath) {
         showToast('Enter a video path', 'error');
         return;
