@@ -1,0 +1,19 @@
+# Backend
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/data/*.json
+!backend/data/clips.json
+!backend/data/match_start.json
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+*.log
+
+# IDE
+.vscode/
+.idea/

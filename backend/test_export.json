@@ -1,0 +1,12 @@
+{
+  "match_start": "10:30:00",
+  "video_path": "/path/to/match.mp4",
+  "clips": [
+    {
+      "name": "Goal",
+      "start_time": "00:10:30",
+      "duration": 600,
+      "end_time": "00:20:30"
+    }
+  ]
+}
