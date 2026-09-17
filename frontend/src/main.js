@@ -1,7 +1,7 @@
 // === main.js — App Entry Point (Vanilla JS, ES Modules) ===
 
 import { listClips, createClip, deleteClip, clearClips, getClips, setMatchStart, getMatchStart, clearMatchStart } from './api.js';
-import { on, off } from './utils/event.js';
+import { on, off, emit } from './utils/event.js';
 import { formatTime, parseTime, formatDuration } from './utils/time.js';
 import { showToast } from './utils/toast.js';
 import { ClipListRenderer } from './components/ClipListRenderer.js';
@@ -18,33 +18,37 @@ let ui = {
   toastTimeout: null
 };
 
-// DOM elements
-const html = document.documentElement;
-const body = document.body;
-
 // Bootstrap on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize components
-  const header = new Header({ target: document.body });
+  // Initialize components with proper container targets
+  const header = new Header({ target: document.getElementById('header') });
   const matchStartPanel = new MatchStartPanel({
-    target: document.body,
-    onSet: async (time) => await setMatchStart(time),
-    onClear: async () => await clearMatchStart()
+    target: document.getElementById('match-start'),
+    onSet: async (time) => {
+      await setMatchStart(time);
+      matchStart = time;
+      emit('matchstart:update', time);
+    },
+    onClear: async () => {
+      await clearMatchStart();
+      matchStart = null;
+      emit('matchstart:update', null);
+    }
   });
   const clipForm = new ClipForm({
-    target: document.body,
+    target: document.getElementById('clip-form'),
     defaultStartTime: matchStart || '00:00:00',
     onSubmit: async (data) => {
       const result = await createClip(data);
       if (result.clip) {
         clips.push(result.clip);
-        ClipListRenderer.render(clips, body);
+        ClipListRenderer.render(clips, document.getElementById('clip-list'));
         showToast('Clip marked');
       }
     }
   });
   const exportPanel = new ExportPanel({
-    target: document.body,
+    target: document.getElementById('export-panel'),
     onExport: async (videoPath) => {
       const result = await exportClips(videoPath);
       if (result.download) {
@@ -65,7 +69,7 @@ async function loadInitialState() {
   // Load match start
   const ms = await getMatchStart();
   matchStart = ms.match_start || null;
-  if (matchStartPanel.update) matchStartPanel.update(matchStart);
+  if (matchStartPanel) matchStartPanel.update(matchStart);
 
   // Load clips
   const allClips = await getClips();
@@ -76,9 +80,9 @@ async function loadInitialState() {
     duration: c.duration,
     end_time: c.end_time
   }));
-  
+
   if (ClipListRenderer.render) {
-    ClipListRenderer.render(clips, body);
+    ClipListRenderer.render(clips, document.getElementById('clip-list'));
   }
 }
 
@@ -98,7 +102,7 @@ function handleKeydown(e) {
         )
       };
       clips.unshift(clip);
-      ClipListRenderer.render(clips, body);
+      ClipListRenderer.render(clips, document.getElementById('clip-list'));
       showToast('Clip marked');
     }
   }
@@ -107,7 +111,7 @@ function handleKeydown(e) {
   if (e.code === 'Delete' && ui.selectedClipId) {
     deleteClip(ui.selectedClipId);
     clips = clips.filter(c => c.id !== ui.selectedClipId);
-    ClipListRenderer.render(clips, body);
+    ClipListRenderer.render(clips, document.getElementById('clip-list'));
     showToast('Clip deleted');
     ui.selectedClipId = null;
   }

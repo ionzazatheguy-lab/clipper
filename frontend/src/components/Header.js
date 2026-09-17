@@ -8,9 +8,7 @@ export class Header {
   }
 
   render() {
-    const header = document.createElement('header');
-    header.className = 'header';
-    header.innerHTML = `
+    this.target.innerHTML = `
       <div class="header__inner">
         <h1 class="header__title">Ball We Cup Clipper</h1>
         <div class="header__status">
@@ -19,7 +17,6 @@ export class Header {
         </div>
       </div>
     `;
-    this.target.insertBefore(header, this.target.firstChild);
     this.updateMatchStart();
   }
 
