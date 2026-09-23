@@ -3,7 +3,7 @@ import { clearRecordingStart, createEvent, createPlayer, createTeam, deleteEvent
 const root = document.querySelector('#root');
 let state = { teams: [], events: [] };
 let selectedTeamId = '';
-let duration = 120;
+let duration = 30;
 let usingCustomDuration = false;
 
 const escape = (value = '') => String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
@@ -69,7 +69,7 @@ function teamManager() {
 }
 
 function durationPicker() {
-  return `<div class="duration"><button type="button" data-duration="120" class="${usingCustomDuration ? '' : 'active'}">Last 120 seconds</button><label class="duration-custom ${usingCustomDuration ? 'active' : ''}" for="duration-custom"><span>Custom</span><input id="duration-custom" type="number" min="1" max="3600" step="1" inputmode="numeric" placeholder="Seconds" value="${usingCustomDuration ? duration : ''}" aria-label="Custom clip length in seconds"><em>s</em></label></div><p class="duration-note">Choose 1–3,600 seconds. The clip ends at the moment you log it.</p>`;
+  return `<div class="duration"><button type="button" data-duration="30" class="${usingCustomDuration ? '' : 'active'}">Last 30 seconds</button><label class="duration-custom ${usingCustomDuration ? 'active' : ''}" for="duration-custom"><span>Custom</span><input id="duration-custom" type="number" min="1" max="3600" step="1" inputmode="numeric" placeholder="Seconds" value="${usingCustomDuration ? duration : ''}" aria-label="Custom clip length in seconds"><em>s</em></label></div><p class="duration-note">Choose 1–3,600 seconds. The clip ends at the moment you log it.</p>`;
 }
 
 function render() {
@@ -88,8 +88,8 @@ function bind() {
   document.querySelectorAll('[data-duration]').forEach(button => button.addEventListener('click', () => { duration = Number(button.dataset.duration); usingCustomDuration = false; render(); }));
   document.querySelector('#duration-custom')?.addEventListener('input', event => {
     usingCustomDuration = event.target.value !== '';
-    duration = usingCustomDuration ? Number(event.target.value) : 120;
-    document.querySelector('[data-duration="120"]')?.classList.toggle('active', !usingCustomDuration);
+    duration = usingCustomDuration ? Number(event.target.value) : 30;
+    document.querySelector('[data-duration="30"]')?.classList.toggle('active', !usingCustomDuration);
     event.target.closest('.duration-custom')?.classList.toggle('active', usingCustomDuration);
   });
   document.querySelector('#recording-start')?.addEventListener('click', () => recordingStart());
