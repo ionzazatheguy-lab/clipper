@@ -1,104 +1,94 @@
-"""JSON file persistence for Ball We Cup Clipper."""
+"""JSON-backed persistence for teams and clipping events."""
 
 import json
-import os
 from pathlib import Path
-from typing import List, Optional
 from threading import Lock
 
-from .models import Clip, MatchStart
+from .models import Clip, Event, Team
 
-# File paths
 DATA_DIR = Path(__file__).parent.parent / "data"
 CLIPS_FILE = DATA_DIR / "clips.json"
-MATCH_START_FILE = DATA_DIR / "match_start.json"
-
-# File lock for thread safety
+TEAMS_FILE = DATA_DIR / "teams.json"
+EVENTS_FILE = DATA_DIR / "events.json"
+RECORDING_FILE = DATA_DIR / "recording.json"
 _file_lock = Lock()
 
 
 def _ensure_data_dir() -> None:
-    """Ensure data directory exists."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _read_json(file_path: Path, default: any) -> any:
-    """Read JSON file with default fallback."""
+def _read_json(path: Path, default):
     _ensure_data_dir()
-    if not file_path.exists():
+    if not path.exists():
         return default
     try:
-        with open(file_path, "r") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
+        with path.open() as file:
+            return json.load(file)
+    except (json.JSONDecodeError, OSError):
         return default
 
 
-def _write_json(file_path: Path, data: any) -> None:
-    """Write JSON file atomically."""
+def _write_json(path: Path, data) -> None:
     _ensure_data_dir()
-    temp_path = file_path.with_suffix(".tmp")
-    with open(temp_path, "w") as f:
-        json.dump(data, f, indent=2)
-    temp_path.replace(file_path)
+    temporary = path.with_suffix(".tmp")
+    with temporary.open("w") as file:
+        json.dump(data, file, indent=2)
+    temporary.replace(path)
 
 
-# Clip operations
-def get_clips() -> List[Clip]:
-    """Get all clips from storage."""
+def get_teams() -> list[Team]:
     with _file_lock:
-        data = _read_json(CLIPS_FILE, [])
-        return [Clip(**item) for item in data]
+        return [Team(**item) for item in _read_json(TEAMS_FILE, [])]
 
 
-def add_clip(clip: Clip) -> Clip:
-    """Add a new clip to storage."""
+def save_teams(teams: list[Team]) -> None:
     with _file_lock:
-        data = _read_json(CLIPS_FILE, [])
-        clips = [Clip(**item) for item in data]
-        clips.append(clip)
-        _write_json(CLIPS_FILE, [c.model_dump() for c in clips])
-    return clip
+        _write_json(TEAMS_FILE, [team.model_dump() for team in teams])
 
 
-def delete_clip(clip_id: str) -> bool:
-    """Delete a clip by ID. Returns True if deleted."""
+def _legacy_events() -> list[Event]:
+    clips = [Clip(**item) for item in _read_json(CLIPS_FILE, [])]
+    return [
+        Event(id=clip.id, type="manual", title=clip.name or "Legacy clip", event_time=clip.end_time,
+              clip_start=clip.start_time, duration=clip.duration, created_at=clip.created_at)
+        for clip in clips
+    ]
+
+
+def get_events() -> list[Event]:
     with _file_lock:
-        data = _read_json(CLIPS_FILE, [])
-        clips = [Clip(**item) for item in data]
-        original_len = len(clips)
-        clips = [c for c in clips if c.id != clip_id]
-        if len(clips) < original_len:
-            _write_json(CLIPS_FILE, [c.model_dump() for c in clips])
-            return True
-    return False
+        if EVENTS_FILE.exists():
+            return [Event(**item) for item in _read_json(EVENTS_FILE, [])]
+        return _legacy_events()
 
 
-def clear_clips() -> None:
-    """Clear all clips."""
+def save_events(events: list[Event]) -> None:
     with _file_lock:
-        _write_json(CLIPS_FILE, [])
+        _write_json(EVENTS_FILE, [event.model_dump() for event in events])
 
 
-# Match start operations
-def get_match_start() -> Optional[MatchStart]:
-    """Get match start time from storage."""
+def materialize_events() -> list[Event]:
+    """Persist legacy clips as manual events before the first event mutation."""
     with _file_lock:
-        data = _read_json(MATCH_START_FILE, None)
-        if data:
-            return MatchStart(**data)
-    return None
+        if EVENTS_FILE.exists():
+            return [Event(**item) for item in _read_json(EVENTS_FILE, [])]
+        events = _legacy_events()
+        _write_json(EVENTS_FILE, [event.model_dump() for event in events])
+        return events
 
 
-def set_match_start(match_start: MatchStart) -> MatchStart:
-    """Set match start time in storage."""
+def get_recording_start() -> str | None:
     with _file_lock:
-        _write_json(MATCH_START_FILE, match_start.model_dump())
-    return match_start
+        return _read_json(RECORDING_FILE, {}).get("recording_started_at")
 
 
-def clear_match_start() -> None:
-    """Clear match start time."""
+def set_recording_start(recording_started_at: str) -> None:
     with _file_lock:
-        if MATCH_START_FILE.exists():
-            MATCH_START_FILE.unlink()
+        _write_json(RECORDING_FILE, {"recording_started_at": recording_started_at})
+
+
+def clear_recording_start() -> None:
+    with _file_lock:
+        if RECORDING_FILE.exists():
+            RECORDING_FILE.unlink()

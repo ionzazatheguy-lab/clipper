@@ -1,80 +1,23 @@
-// === api.js — Backend API Client ===
-
 const BASE = '/api';
 
-export async function listClips() {
-  const res = await fetch(`${BASE}/clips`);
-  return res.json();
-}
-
-export async function createClip({ name, start_time, duration }) {
-  const res = await fetch(`${BASE}/clips`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, start_time, duration })
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to create clip');
-  return { clip: data };
-}
-
-export async function deleteClip(clipId) {
-  const res = await fetch(`${BASE}/clips/${clipId}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to delete clip');
-}
-
-export async function clearClips() {
-  const res = await fetch(`${BASE}/clips`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to clear clips');
-}
-
-export async function getClips() {
-  const res = await fetch(`${BASE}/clips`);
-  return res.json();
-}
-
-export async function setMatchStart(time) {
-  const res = await fetch(`${BASE}/match-start`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ match_start: time })
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to set match start');
+async function request(path, options = {}) {
+  const response = await fetch(`${BASE}${path}`, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || 'Something went wrong');
   return data;
 }
 
-export async function getMatchStart() {
-  const res = await fetch(`${BASE}/match-start`);
-  return res.json();
-}
+const json = (method, body) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
-export async function clearMatchStart() {
-  const res = await fetch(`${BASE}/match-start`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to clear match start');
-}
-
-export async function exportClips(videoPath) {
-  const res = await fetch(`${BASE}/export?video_path=${encodeURIComponent(videoPath)}`);
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'Export failed');
-  }
-  // Return the JSON body and a download helper
-  const data = await res.json();
-  return {
-    data,
-    download: () => {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'clips_export.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-  };
-}
-
-// Export helpers used by main.js
-export { exportClips as downloadExport };
+export const getDashboard = () => request('/dashboard');
+export const setRecordingStart = (recording_started_at) => request('/recording-start', json('POST', { recording_started_at }));
+export const clearRecordingStart = () => request('/recording-start', { method: 'DELETE' });
+export const createTeam = (name) => request('/teams', json('POST', { name }));
+export const updateTeam = (id, name) => request(`/teams/${id}`, json('PATCH', { name }));
+export const deleteTeam = (id) => request(`/teams/${id}`, { method: 'DELETE' });
+export const createPlayer = (teamId, name) => request(`/teams/${teamId}/players`, json('POST', { name }));
+export const updatePlayer = (teamId, playerId, name) => request(`/teams/${teamId}/players/${playerId}`, json('PATCH', { name }));
+export const deletePlayer = (teamId, playerId) => request(`/teams/${teamId}/players/${playerId}`, { method: 'DELETE' });
+export const createEvent = (event) => request('/events', json('POST', event));
+export const deleteEvent = (id) => request(`/events/${id}`, { method: 'DELETE' });
+export const exportEvents = () => request('/export');
